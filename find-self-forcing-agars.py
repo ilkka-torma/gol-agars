@@ -109,6 +109,18 @@ def gol_local_preimage_var(cells, b):
     yield [b, -n3, n4] # Not exactly 3
     yield [b, -c, -n2, n3] # If c==1, not exactly 2
 
+def gol_preimage(pattern):
+    "Clauses and names for the preimage of a single pattern."
+    cells = set(nbr for vec in pattern for nbr in neighborhood(vec))
+    variables = {vec : gen_var() for vec in cells}
+    clauses = [clause
+               for (vec, value) in pattern.items()
+               for clause in gol_local_preimage([variables[cell]
+                                                 for cell in neighborhood(vec)],
+                                                value)]
+    reset_var()
+    return clauses, variables
+
 def lex_leq(least, greaters):
     """Clauses for variable vector l being lexicographically less or equal to
         every variable vector in gs."""
@@ -182,7 +194,7 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
                         clauses.append(clause)
     
     # Pat is lex. smallest among shifts (incl. temporal) and symmetries
-    if lex_func is None:
+    if lex_funcs is None:
         syms = [lambda x,y: (x,y),
                 lambda x,y: (x, height-y-1),
                 lambda x,y: (width-x-1, y),
@@ -213,11 +225,11 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
     with MinisatGH(bootstrap_with=clauses+lex_clauses) as solver:
         while solver.solve():
             model = solver.get_model()
-            yield (fund_domain, model_to_temp_pattern(model, variables))
+            yield (fund_domain, model_to_pattern(model, variables))
             solver.add_clause([-model[variables[vec]] for vec in variables])
 
-def model_to_temp_pattern(model, names):
-    "Convert a model to an orbit."
+def model_to_pattern(model, names):
+    "Convert a model to a pattern or orbit."
     return {vec : (0 if model[name-1] < 0 else 1) for (vec, name) in names.items()}
 
 def print_temp_pattern(temp_pat):
@@ -320,7 +332,7 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         print("Round {}: {}/{} orbits remain".format(i, len(candidates), n))
         news = []
         for (m, temp_pat) in enumerate(candidates):
-            print("Testing pattern {}/{}".format(m, len(candidates)))
+            print("Testing pattern {}/{}".format(m+1, len(candidates)))
             print_temp_pattern(temp_pat)
             if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, to_force=to_force):
                 g += 1
@@ -337,7 +349,67 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
                 news.append(temp_pat)
         candidates = news
         i += 1
+
+def forced_part(pat, return_pat=False):
+    "Compute the set of cells that pattern forces in its preimages."
+    # Assume pats have common domain
+    domain = set(pat)
+    pre_domain = set(nbr for vec in domain for nbr in neighborhood(vec))
+    maybe_forced = set(pre_domain)
+    clauses, variables = gol_preimage(pat)
+    with MinisatGH(bootstrap_with=clauses) as solver:
+        i = 0
+        while solver.solve():
+            i += 1
+            if i == 1:
+                # Get initial preimage
+                pre = model_to_pattern(solver.get_model(), variables)
+            else:
+                new = model_to_pattern(solver.get_model(), variables)
+                maybe_forced -= set(vec for vec in new if new[vec] != pre[vec])
+                solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
+                                   for vec in maybe_forced])
+    if return_pat:
+        return {vec: (1 if vec in domain else '+') if vec in maybe_forced else (0 if vec in domain else '.')
+                for vec in pre_domain}
+    else:
+        return maybe_forced
+
+def find_self_forcing(pat, width, height, tot_width, tot_height):
+    "Find the maximal subpattern that forces itself in its preimages."
+    large_pat = {(i,j):pat[i%width,j%height]
+                 for i in range(tot_width)
+                 for j in range(tot_height)}
+    while True:
+        fp = forced_part(large_pat)
+        print("Now forcing", len(fp), "cells")
+        if any(vec not in fp for vec in large_pat):
+            large_pat = {vec:val for (vec,val) in large_pat.items() if vec in fp}
+            if not large_pat:
+                return None
+        else:
+            return large_pat
         
 if __name__ == "__main__":
-    pass
-#TODO: example
+    ragas = []
+    # dimensions of periodic orbit
+    width, height, temp = 6, 3, 1
+    # speed of increasing extra rows and columns
+    padrow, padcol = 3, 3
+    # the orbit can also be shift-periodic
+    xshift, yshift = 0, 0
+    # if temp == 1, let's also find out if a 70x70 patch contains a self-forcing pattern
+    tot_width, tot_height = 70, 70
+    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift):
+        ragas.append(raga)
+        if temp == 1:
+            sf = find_self_forcing({(i,j):b for ((i,j,t),b) in raga.items()
+                                    if t == 0},
+                                   width, height, tot_width, tot_height)
+            if sf is not None:
+                print("Self-forcing patch found!")
+        with open("output.txt",'a') as f:
+            f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,1 if sf else 0))
+            f.write(str(raga))
+            f.write("\n")
+    print("Done, found", len(ragas))
