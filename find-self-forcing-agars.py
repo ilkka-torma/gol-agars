@@ -109,17 +109,30 @@ def gol_local_preimage_var(cells, b):
     yield [b, -n3, n4] # Not exactly 3
     yield [b, -c, -n2, n3] # If c==1, not exactly 2
 
-def gol_preimage(pattern):
-    "Clauses and names for the preimage of a single pattern."
-    cells = set(nbr for vec in pattern for nbr in neighborhood(vec))
-    variables = {vec : gen_var() for vec in cells}
+def gol_nth_preimage(pattern, temp):
+    """Clauses and names for the nth preimage of a single pattern, n >= 1."""
+    cells = pattern
+    var_cells = set()
+    for t in range(1,temp+1):
+        cells = set(nbr for vec in cells for nbr in neighborhood(vec))
+        var_cells |= set((i,j,t) for (i,j) in cells)
+    variables = {vec : gen_var() for vec in var_cells}
     clauses = [clause
                for (vec, value) in pattern.items()
-               for clause in gol_local_preimage([variables[cell]
-                                                 for cell in neighborhood(vec)],
+               for clause in gol_local_preimage([variables[i,j,1]
+                                                 for (i,j) in neighborhood(vec)],
                                                 value)]
+    clauses += [clause
+                for ((x,y,t), var) in variables.items()
+                if t < temp
+                for clause in gol_local_preimage_var([variables[i,j,t+1]
+                                                      for (i,j) in neighborhood((x,y))],
+                                                     var)]
     reset_var()
-    return clauses, variables
+    
+    return clauses, {(x,y) : var
+                     for ((x,y,t), var) in variables.items()
+                     if t == temp}
 
 def lex_leq(least, greaters):
     """Clauses for variable vector l being lexicographically less or equal to
@@ -299,7 +312,7 @@ def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_
         tiled = {(i,j) : temp_pat[i%width,j%height,t]
                  for i in range(min_x-padcol,max_x+padcol+1)
                  for j in range(min_y-padrow,max_y+padrow+1)}
-        clauses, variables = gol_preimage(tiled)
+        clauses, variables = gol_nth_preimage(tiled, 1)
         with MinisatGH(bootstrap_with=clauses) as solver:
             solver.solve()
             first = model_to_pattern(solver.get_model(), variables)
@@ -350,66 +363,70 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         candidates = news
         i += 1
 
-def forced_part(pat, return_pat=False):
-    "Compute the set of cells that pattern forces in its preimages."
+def forced_part(pats, temp, return_pat=False):
+    "Compute the set of cells that all patterns force in their t'th preimages."
     # Assume pats have common domain
-    domain = set(pat)
+    domain = set(pats[0])
     pre_domain = set(nbr for vec in domain for nbr in neighborhood(vec))
     maybe_forced = set(pre_domain)
-    clauses, variables = gol_preimage(pat)
-    with MinisatGH(bootstrap_with=clauses) as solver:
-        i = 0
-        while solver.solve():
-            i += 1
-            if i == 1:
-                # Get initial preimage
-                pre = model_to_pattern(solver.get_model(), variables)
-            else:
-                new = model_to_pattern(solver.get_model(), variables)
-                maybe_forced -= set(vec for vec in new if new[vec] != pre[vec])
-                solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
-                                   for vec in maybe_forced])
+    for (k, pat) in enumerate(pats):
+        clauses, variables = gol_nth_preimage(pat, temp)
+        with MinisatGH(bootstrap_with=clauses) as solver:
+            i = 0
+            while solver.solve():
+                i += 1
+                if i == 1:
+                    # Get initial preimage
+                    pre = model_to_pattern(solver.get_model(), variables)
+                    if k > 0:
+                        solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
+                                           for vec in maybe_forced])
+                else:
+                    new = model_to_pattern(solver.get_model(), variables)
+                    maybe_forced -= set(vec for vec in new if new[vec] != pre[vec])
+                    solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
+                                       for vec in maybe_forced])
     if return_pat:
         return {vec: (1 if vec in domain else '+') if vec in maybe_forced else (0 if vec in domain else '.')
                 for vec in pre_domain}
     else:
         return maybe_forced
 
-def find_self_forcing(pat, width, height, tot_width, tot_height):
-    "Find the maximal subpattern that forces itself in its preimages."
-    large_pat = {(i,j):pat[i%width,j%height]
-                 for i in range(tot_width)
-                 for j in range(tot_height)}
+def find_self_forcing(pat, temp):
+    "Find the maximal nonempty subpattern that forces itself in its nth preimages."
     while True:
-        fp = forced_part(large_pat)
+        fp = forced_part([pat], temp)
         print("Now forcing", len(fp), "cells")
-        if any(vec not in fp for vec in large_pat):
-            large_pat = {vec:val for (vec,val) in large_pat.items() if vec in fp}
-            if not large_pat:
+        if any(vec not in fp for vec in pat):
+            pat = {vec:val for (vec,val) in pat.items() if vec in fp}
+            if not pat:
                 return None
         else:
-            return large_pat
+            return pat
         
 if __name__ == "__main__":
     ragas = []
     # dimensions of periodic orbit
-    width, height, temp = 6, 3, 1
+    width, height, temp = 6, 4, 2
     # speed of increasing extra rows and columns
     padrow, padcol = 3, 3
     # the orbit can also be shift-periodic
     xshift, yshift = 0, 0
-    # if temp == 1, let's also find out if a 70x70 patch contains a self-forcing pattern
-    tot_width, tot_height = 70, 70
+    # let's also find out if a 50x50 patch contains a self-forcing pattern
+    check_forcing = True
+    tot_width, tot_height = 50, 50
     for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift):
         ragas.append(raga)
-        if temp == 1:
-            sf = find_self_forcing({(i,j):b for ((i,j,t),b) in raga.items()
-                                    if t == 0},
-                                   width, height, tot_width, tot_height)
+        if check_forcing:
+            print("Computing maximal self-forcing patch")
+            large_patch = {(x,y):raga[x%width,y%height,0]
+                           for x in range(tot_width)
+                           for y in range(tot_height)}
+            sf = find_self_forcing(large_patch, temp)
             if sf is not None:
                 print("Self-forcing patch found!")
         with open("output.txt",'a') as f:
-            f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,1 if sf else 0))
+            f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
             f.write(str(raga))
             f.write("\n")
     print("Done, found", len(ragas))
