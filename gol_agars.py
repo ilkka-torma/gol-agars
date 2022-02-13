@@ -389,8 +389,8 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         i += 1
 
 def common_forced_part(pats, temp, return_pat=False):
-    """Compute the set of cells that all patterns force in their t'th preimages.
-       Return None if any of the patterns have no t'th preimage."""
+    """Compute the set of cells that all patterns force in their nth preimages.
+       Return None if any of the patterns have no nth preimage."""
     # Assume pats have common domain
     domain = set(pats[0])
     pre_domain = domain
@@ -422,16 +422,17 @@ def common_forced_part(pats, temp, return_pat=False):
     else:
         return maybe_forced
 
-def find_self_forcing(pat, temp):
+def find_self_forcing(pat, temp, shift=(0,0)):
     """Find the maximal nonempty subpattern that forces itself in its nth preimages.
-       If pat is a t'th-generation orphan, return None."""
+       If pat is a nth-generation orphan, return None."""
+    sx, sy = shift
     while True:
         fp = common_forced_part([pat], temp)
         if fp is None:
             return None
         print("Now forcing", len(fp), "cells")
         if any(vec not in fp for vec in pat):
-            pat = {vec:val for (vec,val) in pat.items() if vec in fp}
+            pat = {(x,y):val for ((x,y),val) in pat.items() if (x-sx,y-sy) in fp}
             if not pat:
                 return pat
         else:
