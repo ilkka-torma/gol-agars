@@ -245,6 +245,26 @@ def model_to_pattern(model, names):
     "Convert a model to a pattern or orbit."
     return {vec : (0 if model[name-1] < 0 else 1) for (vec, name) in names.items()}
 
+def mat_to_pattern(mat):
+    return {(i,j) : b for (j, row) in enumerate(mat) for (i, b) in enumerate(row)}
+
+def print_pattern(pat):
+    "Print a pattern."
+    if pat is None:
+        print("No pattern")
+    else:
+        minx = min(p[0] for p in pat)
+        maxx = max(p[0] for p in pat)
+        miny = min(p[1] for p in pat)
+        maxy = max(p[1] for p in pat)
+        for y in range(miny, maxy+1):
+            for x in range(minx, maxx+1):
+                if (x,y) in pat:
+                    print(pat[x,y], end="")
+                else:
+                    print(" ", end="")
+            print()
+
 def print_temp_pattern(temp_pat):
     "Print an orbit."
     if temp_pat is None:
@@ -363,13 +383,15 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         candidates = news
         i += 1
 
-def forced_part(pats, temp, return_pat=False):
+def common_forced_part(pats, temp, return_pat=False):
     "Compute the set of cells that all patterns force in their t'th preimages."
     # Assume pats have common domain
     domain = set(pats[0])
     pre_domain = set(nbr for vec in domain for nbr in neighborhood(vec))
     maybe_forced = set(pre_domain)
     for (k, pat) in enumerate(pats):
+        if len(pats) > 1:
+            print("Pattern {}/{}, {} cells potentially forced".format(k+1, len(pats), len(maybe_forced)))
         clauses, variables = gol_nth_preimage(pat, temp)
         with MinisatGH(bootstrap_with=clauses) as solver:
             i = 0
@@ -378,14 +400,11 @@ def forced_part(pats, temp, return_pat=False):
                 if i == 1:
                     # Get initial preimage
                     pre = model_to_pattern(solver.get_model(), variables)
-                    if k > 0:
-                        solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
-                                           for vec in maybe_forced])
                 else:
                     new = model_to_pattern(solver.get_model(), variables)
                     maybe_forced -= set(vec for vec in new if new[vec] != pre[vec])
-                    solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
-                                       for vec in maybe_forced])
+                solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
+                                   for vec in maybe_forced])
     if return_pat:
         return {vec: (1 if vec in domain else '+') if vec in maybe_forced else (0 if vec in domain else '.')
                 for vec in pre_domain}
@@ -395,7 +414,7 @@ def forced_part(pats, temp, return_pat=False):
 def find_self_forcing(pat, temp):
     "Find the maximal nonempty subpattern that forces itself in its nth preimages."
     while True:
-        fp = forced_part([pat], temp)
+        fp = common_forced_part([pat], temp)
         print("Now forcing", len(fp), "cells")
         if any(vec not in fp for vec in pat):
             pat = {vec:val for (vec,val) in pat.items() if vec in fp}
@@ -422,9 +441,10 @@ if __name__ == "__main__":
             large_patch = {(x,y):raga[x%width,y%height,0]
                            for x in range(tot_width)
                            for y in range(tot_height)}
-            sf = find_self_forcing(large_patch, temp)
+            sf = find_self_forcing(large_patch, temp, return_pat=True)
             if sf is not None:
                 print("Self-forcing patch found!")
+                print_temp
         with open("output.txt",'a') as f:
             f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
             f.write(str(raga))
