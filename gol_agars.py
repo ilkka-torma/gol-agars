@@ -129,10 +129,11 @@ def gol_nth_preimage(pattern, temp):
                                                       for (i,j) in neighborhood((x,y))],
                                                      var)]
     reset_var()
-    
-    return clauses, {(x,y) : var
-                     for ((x,y,t), var) in variables.items()
-                     if t == temp}
+
+    ret_vars = {(x,y) : var
+                for ((x,y,t), var) in variables.items()
+                if t == temp}
+    return clauses, ret_vars
 
 def lex_leq(least, greaters):
     """Clauses for variable vector l being lexicographically less or equal to
@@ -387,7 +388,9 @@ def common_forced_part(pats, temp, return_pat=False):
     "Compute the set of cells that all patterns force in their t'th preimages."
     # Assume pats have common domain
     domain = set(pats[0])
-    pre_domain = set(nbr for vec in domain for nbr in neighborhood(vec))
+    pre_domain = domain
+    for t in range(temp):
+        pre_domain = set(nbr for vec in pre_domain for nbr in neighborhood(vec))
     maybe_forced = set(pre_domain)
     for (k, pat) in enumerate(pats):
         if len(pats) > 1:
