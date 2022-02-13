@@ -253,6 +253,8 @@ def print_pattern(pat):
     "Print a pattern."
     if pat is None:
         print("No pattern")
+    elif not pat:
+        print("Empty pattern")
     else:
         minx = min(p[0] for p in pat)
         maxx = max(p[0] for p in pat)
@@ -270,6 +272,8 @@ def print_temp_pattern(temp_pat):
     "Print an orbit."
     if temp_pat is None:
         print("No pattern")
+    elif not temp_pat:
+        print("Empty pattern")
     else:
         minx = min(p[0] for p in temp_pat)
         maxx = max(p[0] for p in temp_pat)
@@ -385,7 +389,8 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         i += 1
 
 def common_forced_part(pats, temp, return_pat=False):
-    "Compute the set of cells that all patterns force in their t'th preimages."
+    """Compute the set of cells that all patterns force in their t'th preimages.
+       Return None if any of the patterns have no t'th preimage."""
     # Assume pats have common domain
     domain = set(pats[0])
     pre_domain = domain
@@ -408,6 +413,9 @@ def common_forced_part(pats, temp, return_pat=False):
                     maybe_forced -= set(vec for vec in new if new[vec] != pre[vec])
                 solver.add_clause([(-1 if pre[vec] else 1)*variables[vec]
                                    for vec in maybe_forced])
+            if i == 0:
+                # No preimages exist
+                return None
     if return_pat:
         return {vec: (1 if vec in domain else '+') if vec in maybe_forced else (0 if vec in domain else '.')
                 for vec in pre_domain}
@@ -415,14 +423,17 @@ def common_forced_part(pats, temp, return_pat=False):
         return maybe_forced
 
 def find_self_forcing(pat, temp):
-    "Find the maximal nonempty subpattern that forces itself in its nth preimages."
+    """Find the maximal nonempty subpattern that forces itself in its nth preimages.
+       If pat is a t'th-generation orphan, return None."""
     while True:
         fp = common_forced_part([pat], temp)
+        if fp is None:
+            return None
         print("Now forcing", len(fp), "cells")
         if any(vec not in fp for vec in pat):
             pat = {vec:val for (vec,val) in pat.items() if vec in fp}
             if not pat:
-                return None
+                return pat
         else:
             return pat
         
