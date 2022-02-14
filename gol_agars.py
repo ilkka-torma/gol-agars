@@ -253,7 +253,7 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         candidates = news
         i += 1
 
-def common_forced_part(pats, temp, return_pat=False, instance="sort_network"):
+def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sort_network"):
     """Compute the set of cells that all patterns force in their nth preimages.
        Return None if any of the patterns have no nth preimage."""
     # Assume pats have common domain
@@ -282,8 +282,7 @@ def common_forced_part(pats, temp, return_pat=False, instance="sort_network"):
                 # No preimages exist
                 return None
     if return_pat:
-        return {vec: (1 if vec in domain else '+') if vec in maybe_forced else (0 if vec in domain else '.')
-                for vec in pre_domain}
+        return {vec: chars[2*(vec in domain) + (vec in maybe_forced)] for vec in pre_domain}
     else:
         return maybe_forced
 
