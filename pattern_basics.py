@@ -57,17 +57,22 @@ def print_temp_pattern(temp_pat):
             if t < maxt:
                 print("-->")
 
-def gollify(s):
-    "Convert pattern matrix string to Golly .rle string"
+def gollify(s, string=True, torus=False):
+    "Convert pattern matrix (string) to Golly .rle string"
     #print(s)
-    rows = []
-    for r in s.split("\n"):
-        r = r.strip()
-        if r == "" or r.isspace():
-            continue
-        rows.append(r)
+    if string:
+        rows = []
+        for r in s.split("\n"):
+            r = r.strip()
+            if r == "" or r.isspace():
+                continue
+            rows.append(r)
+    else:
+        rows = [[str(b) for b in r] for r in s]
     # change rule to Caterpillars if you want 2s and 3s
-    golster = "x = %s, y = %s, rule = Life\n" % (len(rows[0]), len(rows))
+    x, y = len(rows[0]), len(rows)
+    init = "x = {}, y = {}, rule = Life{}\n".format(x, y, ":T{},{}".format(x, y) if torus else "")
+    golster = []
     for r in rows:
         w = ""
         for k in r:
@@ -79,8 +84,8 @@ def gollify(s):
                 w += "B"
             elif k == "3":
                 w += "C"
-        golster += w + "$"
-    return golster
+        golster.append(w)
+    return init + "$".join(golster) + "!"
 
 def degollify(s, tostr = False):
     "Convert Golly .rle string to pattern matrix (string if tostr=True)"
@@ -169,9 +174,9 @@ def pattern_to_matrix(pat):
 def ppattern_to_matrix(pat):
     xmin, xmax, ymin, ymax, per = pextent(pat)
     mat = []
-    for y in range(ymax-ymin):
+    for y in range(ymax-ymin+1):
         mat.append([])
-        for x in range(xmax-xmin):
+        for x in range(xmax-xmin+1):
             mat[-1].append(pat[x-xmin,y-ymin,0])
     return mat
 

@@ -317,6 +317,8 @@ if __name__ == "__main__":
     # let's also find out if a 50x50 patch contains a self-forcing pattern
     check_forcing = True
     tot_width, tot_height = 50, 50
+    # output as rle (as opposed to Python dict)
+    rle_output = True
     for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, instance=instance):
         ragas.append(raga)
         if check_forcing:
@@ -329,10 +331,22 @@ if __name__ == "__main__":
                 print("Self-forcing patch found!")
                 print_pattern(sf)
         with open("output.txt",'a') as f:
-            if check_forcing:
-                f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
-            else:
-                f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,'?'))
-                f.write(str(raga))
+            if rle_output:
+                if check_forcing:
+                    if sf:
+                        lox, hix, loy, hiy, _ = pextend(sf)
+                        f.write("# self-forcing patch of size {}x{}\n".format(hix-lox, hiy-loy))
+                    else:
+                        f.write("# no self-forcing patch found\n")
+                f.write("# temporal period {}\n".format(temp))
+                f.write("# {} extra columns, {} rows to force fundamental domain\n".format(pc, pr))
+                f.write(gollify(ppattern_to_matrix(raga), string=False, torus=True))
                 f.write("\n")
+            else:
+                if check_forcing:
+                    f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
+                else:
+                    f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,'?'))
+                    f.write(str(raga))
+                    f.write("\n")
     print("Done, found", len(ragas))
