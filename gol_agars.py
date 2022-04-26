@@ -116,16 +116,19 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
     
     # Pat is lex. smallest among shifts (incl. temporal) and symmetries
     if lex_funcs is None:
-        syms = [lambda x,y: (x,y),
-                lambda x,y: (x, height-y-1),
-                lambda x,y: (width-x-1, y),
-                lambda x,y: (width-x-1, height-y-1)]
-        if width == height:
-            syms += [
-                lambda x,y: (y,x),
-                lambda x,y: (height-y-1,x),
-                lambda x,y: (y,width-x-1),
-                lambda x,y: (height-y-1,width-x-1)]
+        if xshift == yshift == 0:
+            syms = [lambda x,y: (x,y),
+                    lambda x,y: (x, height-y-1),
+                    lambda x,y: (width-x-1, y),
+                    lambda x,y: (width-x-1, height-y-1)]
+            if width == height:
+                syms += [
+                    lambda x,y: (y,x),
+                    lambda x,y: (height-y-1,x),
+                    lambda x,y: (y,width-x-1),
+                    lambda x,y: (height-y-1,width-x-1)]
+        else:
+            syms = [lambda x,y: (x,y)]
         base_vars = [variables[i,j,0] for i in range(width) for j in range(height)]
         other_vars = [[variables[sym((i+sx)%width,(j+sy)%height) + (t,)]
                        for i in range(width) for j in range(height)]
@@ -147,7 +150,7 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
         while solver.solve():
             model = solver.get_model()
             yield (fund_domain, model_to_pattern(model, variables))
-            solver.add_clause([-model[variables[vec]] for vec in variables])
+            solver.add_clause([-model[variables[vec]-1] for vec in variables])
 
 def model_to_pattern(model, names):
     "Convert a model to a pattern or orbit."
@@ -326,7 +329,10 @@ if __name__ == "__main__":
                 print("Self-forcing patch found!")
                 print_pattern(sf)
         with open("output.txt",'a') as f:
-            f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
-            f.write(str(raga))
-            f.write("\n")
+            if check_forcing:
+                f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,0 if sf is None else 1))
+            else:
+                f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,'?'))
+                f.write(str(raga))
+                f.write("\n")
     print("Done, found", len(ragas))
