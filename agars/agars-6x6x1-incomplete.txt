@@ -1,0 +1,212 @@
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$bAAbbA$bbAbAA$AbbAbb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$bAAbbA$bbAbAA$bAbbAb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bAAbAA$bbbAbA$bbbAbA$bAAbbA$AbbAAb$AbAbbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAbA$bbAAbA$bAbbAA$AbAbbb$bAbAAb$AbbAbA!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAAbAA$bbAbbA$bAbbAb$bAAbAA$AbbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAAbbA$bbAbbA$bbAbAA$bAAbbA$AbbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAAbAA$bbAbbA$AbbAbb$bAAbAA$AbbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAAbA$bAbbAb$AbAbbA$bbAAbA$bAbbAb$AbAbbA!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbAAb$AbAbbA$bAbbAb$bbAAbA$AAbbAb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$AAbAbb$bbAbAA$bAbbAb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$AAbAbb$bbAbbA$bbAbAA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAAbA$bbAbbA$AAbbAb$bbAAbA$bAbbAb$AAbbAb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbbA$bAAbAA$bbAbbA$bAbbAb$AAbAAb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$bAAbbA$bbAbbA$bbAbAA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$bAAbbA$bbAbbA$AbbAAb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$bAAbbA$bAbbAb$bbAbAA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$bAAbbA$AbbAAb$bbAbbA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$bAAbbA$AbbAAb$bAbbAb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbAb$bAAbAb$bbAbAA$bAbbbA$AbAAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$bAAbbA$AbbAbb$bbAbAA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAb$bAbbAA$bAAbbA$bbAbAb$AbbAbA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAbbAb$bAAbbA$bbAbAA$AbbAbb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbbAA$bAAbAb$bAAbbA$bbbbAA$AbAAbb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAbbbA$bAAbAb$bbAbAA$bAbbbA$AbAAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbbAA$bAAbAb$bbAbbA$bAbbAA$AbAAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbbAA$bAAbAb$AbbAbb$bAbbAA$AbAAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbbAb$bAAbAA$AbbAbb$bAbbAb$AbAAbA!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAbbAb$bAAbbA$AbbAAb$bbAbbA$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAbbAb$bAAbbA$AbbAAb$bAbbAb$AAbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAbbbA$bAAbAb$AbbAAb$bAbbbA$AbAAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAAbAA$bAbbAb$AbbAbb$bAAbAA$AbbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAAbAA$bAbbAb$bAbbAb$bAAbAA$AbbAbb!
+# temporal period 1
+# 9 extra columns, 9 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAAbbA$bAbbAb$bbAbAA$bAAbbA$AbbAbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bbAbbA$bAAbbA$bbAbAA$bAbbAb$bAAbbA!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAb$bAbbbA$bAAAbA$bbbbAA$bAAbbb$AbAbAA!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAAA$bAbbbA$bAAAbb$AbbbAA$bbAbAb$AAAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAbA$bbbAbA$bAAbbA$bbAbAA$AbAbbb$AAbAAb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAbA$bAAbbA$bAbbbA$bbAAAA$AbAbbb$AbAbAb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bAbAbA$bbbAbA$bbAbbA$bAbAAA$AbAbbb$AbAbAb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAAbbA$bbbAbA$bbbAbA$bAAbAA$AbAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAAA$bbAbbA$bAbAbA$AbAbAb$bbAbbA$AAAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAb$bbAbAb$bAAbAA$bbAbAb$bAbbbA$AbAAbA!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bbAbAA$bAAbbA$AbbAbb$AbbAAb$AAbAbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbbAb$bAAbAA$AbbAbb$bbAbbA$AAbAAb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbAAA$bbAbbA$bbAbAb$AAbAbA$bbbAbA$AAAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAAbA$bAbbbA$bbAAbA$AAbbAb$bbAbAb$AAbbAb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAbbAb$bAAbAA$bAbbAb$bbAbbA$AbAAbA!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAAbbA$bbbAbA$bAAbbA$bbAbAA$AbAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAA$bAAbbA$bbbAbA$bAAbbA$AbbAAb$AbAbbb!
+# temporal period 1
+# 18 extra columns, 18 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbbbAA$bAAbbA$bAAbAb$bbbbAA$bAAbbA$AbAAbb!
+# temporal period 1
+# 27 extra columns, 27 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbAb$bbAbAA$bAAbAb$bAbbbA$bAbAAA$AbAbbb!
+# temporal period 1
+# 27 extra columns, 27 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAbbA$bAAbAA$bbAbbA$bAbbAb$bAAbAA$bAbbAb!
+# temporal period 1
+# 27 extra columns, 27 rows to force fundamental domain
+x = 6, y = 6, rule = Life:T6,6
+bbAAbA$bAbbbA$bAbbbA$bAbAAA$AbAbbb$AbAbAb!
