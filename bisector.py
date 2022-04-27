@@ -167,7 +167,9 @@ ker = generate_gol_ker([1,2,3,4,5,6,7,8,9])
 ide = generate_gol_ide([1,2,3,4,5,6,7,8,9])
 img = generate_gol_img([1,2,3,4,5,6,7,8,9,10])
 
-def gol_local_preimage(cells, value):
+def local_preimage(cells, value, rule=([3], [2,3])):
+    if rule != ([3], [2,3]):
+        print("Bisector supports only B3/S23")
     if value:
         for clause in substi(one, cells):
             yield clause
@@ -175,10 +177,14 @@ def gol_local_preimage(cells, value):
         for clause in substi(ker, cells):
             yield clause
 
-def gol_local_fixp(cells):
+def local_fixp(cells, rule=([3], [2,3])):
+    if rule != ([3], [2,3]):
+        print("Bisector supports only B3/S23")
     for clause in substi(ide, cells):
         yield clause
 
-def gol_local_preimage_var(cells, var):
+def local_preimage_var(cells, var, rule=([3], [2,3])):
+    if rule != ([3], [2,3]):
+        print("Bisector supports only B3/S23")
     for clause in substi(img, [var]+cells):
         yield clause

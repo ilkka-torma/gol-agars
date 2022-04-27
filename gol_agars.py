@@ -4,7 +4,7 @@ from pattern_basics import *
 import bisector
 import sort_network
 
-def gol_nth_preimage(pattern, temp, instance="sort_network"):
+def nth_preimage(pattern, temp, instance="sort_network",rule=([3],[2,3])):
     """Clauses and names for the nth preimage of a single pattern, n >= 1."""
     if instance == "sort_network":
         mod = sort_network
@@ -18,15 +18,17 @@ def gol_nth_preimage(pattern, temp, instance="sort_network"):
     variables = {vec : mod.gen_var() for vec in var_cells}
     clauses = [clause
                for (vec, value) in pattern.items()
-               for clause in mod.gol_local_preimage([variables[i,j,1]
-                                                     for (i,j) in neighborhood(vec)],
-                                                    value)]
+               for clause in mod.local_preimage([variables[i,j,1]
+                                                 for (i,j) in neighborhood(vec)],
+                                                value,
+                                                rule)]
     clauses += [clause
                 for ((x,y,t), var) in variables.items()
                 if t < temp
-                for clause in mod.gol_local_preimage_var([variables[i,j,t+1]
-                                                          for (i,j) in neighborhood((x,y))],
-                                                         var)]
+                for clause in mod.local_preimage_var([variables[i,j,t+1]
+                                                      for (i,j) in neighborhood((x,y))],
+                                                     var,
+                                                     rule)]
     mod.reset_var()
 
     ret_vars = {(x,y) : var
@@ -58,7 +60,7 @@ def lex_leq(least, greaters, instance="sort_network"):
                 clause.append(-lex_vars[c,d])
             yield clause + [-a, b]
 
-def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_funcs=None, instance="sort_network"):
+def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_funcs=None, instance="sort_network",rule=([3],[2,3])):
     """All w x h-periodic configurations that map to (sx,sy)-translated
        versions of themselves in t steps.
        Discard those that are not lexicographically minimal in their orbit.
@@ -107,11 +109,12 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
                     sx, sy = xshift, yshift
                 else:
                     sx, sy = 0, 0
-                for clause in mod.gol_local_preimage_var([variables[x%width,y%height,t]
-                                                          for (x,y) in neighborhood((i,j))],
-                                                         variables[(i+sx)%width,
-                                                                   (j+sy)%height,
-                                                                   (t+1)%temp]):
+                for clause in mod.local_preimage_var([variables[x%width,y%height,t]
+                                                      for (x,y) in neighborhood((i,j))],
+                                                     variables[(i+sx)%width,
+                                                               (j+sy)%height,
+                                                               (t+1)%temp],
+                                                     rule):
                         clauses.append(clause)
     
     # Pat is lex. smallest among shifts (incl. temporal) and symmetries
@@ -156,7 +159,7 @@ def model_to_pattern(model, names):
     "Convert a model to a pattern or orbit."
     return {vec : (0 if model[name-1] < 0 else 1) for (vec, name) in names.items()}
 
-def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instance="sort_network"):
+def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instance="sort_network", rule=([3],[2,3])):
     "Does each configuration in this orbit have a unique w*xp × h*yp -periodic preimage?"
     if instance == "sort_network":
         mod = sort_network
@@ -168,9 +171,10 @@ def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instanc
                      for j in range(yper*height)}
         clauses = [clause
                    for (i,j) in variables
-                   for clause in mod.gol_local_preimage([variables[x%(xper*width),y%(yper*height)]
-                                                         for (x,y) in neighborhood((i,j))],
-                                                        temp_pat[i%width,j%height,t])]
+                   for clause in mod.local_preimage([variables[x%(xper*width),y%(yper*height)]
+                                                     for (x,y) in neighborhood((i,j))],
+                                                    temp_pat[i%width,j%height,t],
+                                                    rule)]
         
         # force lexicographic minimality among shifts along periods
         base_vars = [variables[i,j] for i in range(width) for j in range(height)]
@@ -178,17 +182,22 @@ def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instanc
                       for x in range(xper)
                       for y in range(1 if x==0 else 0, yper)]
         lex_clauses = list(lex_leq(base_vars, other_vars, instance=instance))
+
+        # force difference to previous configuration in orbit
+        diff_clause = [(-1 if temp_pat[x%width,y%height,(t-1)%temp] else 1)*variables[x,y]
+                       for x in range(width*xper)
+                       for y in range(height*yper)]
         
         mod.reset_var()
-        with MinisatGH(bootstrap_with=clauses+lex_clauses) as solver:
-            solver.solve()
-            first = model_to_pattern(solver.get_model(), variables)
-            solver.add_clause([(-1 if first[vec] else 1)*variables[vec] for vec in first])
+        with MinisatGH(bootstrap_with=clauses+lex_clauses+[diff_clause]) as solver:
             if solver.solve():
+                #print("Periodic preimage:")
+                #model = model_to_pattern(solver.get_model(), variables)
+                #print_pattern(model)
                 return False
     return True
 
-def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_force=None, instance="sort_network"):
+def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_force=None, instance="sort_network",rule=([3],[2,3])):
     """Does each configuration in this orbit have a unique w×h-patch in the preimage
        if it's continued periodically for the given number of rows and columns?"""
     if to_force is None:
@@ -205,28 +214,27 @@ def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_
         tiled = {(i,j) : temp_pat[i%width,j%height,t]
                  for i in range(min_x-padcol,max_x+padcol+1)
                  for j in range(min_y-padrow,max_y+padrow+1)}
-        clauses, variables = gol_nth_preimage(tiled, 1, instance=instance)
-        with MinisatGH(bootstrap_with=clauses) as solver:
-            solver.solve()
-            first = model_to_pattern(solver.get_model(), variables)
-            solver.add_clause([(-1 if first[vec] else 1)*variables[vec]
-                               for vec in to_force])
+        clauses, variables = nth_preimage(tiled, 1, instance=instance, rule=rule)
+        diff_clause = [(-1 if temp_pat[i,j,(t-1)%temp] else 1)*variables[i,j]
+                       for i in range(width)
+                       for j in range(height)]
+        with MinisatGH(bootstrap_with=clauses+[diff_clause]) as solver:
             if solver.solve():
                 return False
     return True
 
-def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network"):
+def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network",rule=([3],[2,3])):
     """Search for self-forcing agars of given spatial and temporal periods."""
     n = 0
     print("Checking {}x{}x{}-periodic points with shift ({},{})".format(width, height, temp, xshift, yshift))
     candidates = []
-    for (domain, temp_pat) in periodic_agars(width, height, temp, xshift, yshift, period_func, lex_funcs, instance=instance):
+    for (domain, temp_pat) in periodic_agars(width, height, temp, xshift, yshift, period_func, lex_funcs, instance=instance, rule=rule):
         to_force = domain
         if temp == 1 or any(temp_pat[i,j,t] != temp_pat[i,j,(t+1)%temp]
                             for i in range(width) for j in range(height) for t in range(temp)):
             print("Testing pattern")
             print_temp_pattern(temp_pat)
-            if has_unique_periodic_orbit(temp_pat, width, height, temp, 1, 1, instance=instance):
+            if has_unique_periodic_orbit(temp_pat, width, height, temp, 1, 1, instance=instance, rule=rule):
                 print("Qualified")
                 candidates.append(temp_pat)
             n += 1
@@ -240,14 +248,14 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         for (m, temp_pat) in enumerate(candidates):
             print("Testing pattern {}/{}".format(m+1, len(candidates)))
             print_temp_pattern(temp_pat)
-            if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, to_force=to_force, instance=instance):
+            if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, to_force=to_force, instance=instance, rule=rule):
                 g += 1
                 print("It forced itself! ({} so far)".format(g))
                 yield (temp_pat, i*padcol, i*padrow)
                 continue
             print("It didn't yet force itself")
             for (a,b) in [(i,i+1),(i,i+2),(i+1,i+1)]:
-                if not has_unique_periodic_orbit(temp_pat, width, height, temp, a, b, instance=instance):
+                if not has_unique_periodic_orbit(temp_pat, width, height, temp, a, b, instance=instance, rule=rule):
                     print("Found periodic preimage, discarded")
                     break
             else:
@@ -256,7 +264,7 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         candidates = news
         i += 1
 
-def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sort_network"):
+def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sort_network", rule=([3],[2,3])):
     """Compute the set of cells that all patterns force in their nth preimages.
        Return None if any of the patterns have no nth preimage."""
     # Assume pats have common domain
@@ -268,7 +276,7 @@ def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sor
     for (k, pat) in enumerate(pats):
         if len(pats) > 1:
             print("Pattern {}/{}, {} cells potentially forced".format(k+1, len(pats), len(maybe_forced)))
-        clauses, variables = gol_nth_preimage(pat, temp, instance=instance)
+        clauses, variables = nth_preimage(pat, temp, instance=instance, rule=rule)
         with MinisatGH(bootstrap_with=clauses) as solver:
             i = 0
             while solver.solve():
@@ -289,12 +297,12 @@ def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sor
     else:
         return maybe_forced
 
-def find_self_forcing(pat, temp, shift=(0,0), instance="sort_network"):
+def find_self_forcing(pat, temp, shift=(0,0), instance="sort_network", rule=([3],[2,3])):
     """Find the maximal nonempty subpattern that forces itself in its nth preimages.
        If pat is a nth-generation orphan, return None."""
     sx, sy = shift
     while True:
-        fp = common_forced_part([pat], temp, instance=instance)
+        fp = common_forced_part([pat], temp, instance=instance, rule=rule)
         if fp is None:
             return None
         print("Now forcing", len(fp), "cells")
@@ -307,7 +315,11 @@ def find_self_forcing(pat, temp, shift=(0,0), instance="sort_network"):
         
 if __name__ == "__main__":
     ragas = []
-    instance = "bisector"
+    # instance and rule; rules other than B3/S23 are supported only by sort_network
+    instance = "sort_network"
+    rule = ([3],[2,3]) # Life
+    print("Using rule B{}/S{}".format("".join(map(str,rule[0])),
+                                      "".join(map(str,rule[1]))))
     # dimensions of periodic orbit
     width, height, temp = 6, 4, 2
     # speed of increasing extra rows and columns
@@ -319,14 +331,14 @@ if __name__ == "__main__":
     tot_width, tot_height = 50, 50
     # output as rle (as opposed to Python dict)
     rle_output = True
-    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, instance=instance):
+    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, rule=rule, instance=instance):
         ragas.append(raga)
         if check_forcing:
             print("Computing maximal self-forcing patch")
             large_patch = {(x,y):raga[x%width,y%height,0]
                            for x in range(tot_width)
                            for y in range(tot_height)}
-            sf = find_self_forcing(large_patch, temp, instance=instance)
+            sf = find_self_forcing(large_patch, temp, rule=rule, instance=instance)
             if sf:
                 print("Self-forcing patch found!")
                 print_pattern(sf)

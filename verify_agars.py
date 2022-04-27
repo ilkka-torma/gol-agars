@@ -38,6 +38,6 @@ if False:
     print_pattern(marching_band)
     print("Common g^2-forced part of 48x44 patches of marching band")
     pats = [{(x,y):marching_band[(x+dx)%8,(y+dy)%4] for x in range(48) for y in range(44)}
-            for dx in range(1)
-            for dy in range(1)]
+            for dx in range(8)
+            for dy in range(4)]
     print_pattern(common_forced_part(pats, 2, return_pat=True))
