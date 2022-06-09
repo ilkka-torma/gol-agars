@@ -2,14 +2,24 @@ def neighborhood(vec):
     "The middle cell is the first one yielded."
     yield vec
     x, y = vec
-    yield (x-1,y-1)
-    yield (x,y-1)
-    yield (x+1,y-1)
-    yield (x-1,y)
-    yield (x+1,y)
-    yield (x-1,y+1)
-    yield (x,y+1)
-    yield (x+1,y+1)
+    if int((x%4)/2) == y%2:
+        yield (x-1,y-1)
+        yield (x,y-1)
+        yield (x+1,y-1)
+        yield (x+1,y)
+        yield (x+1,y+1)
+        yield (x,y+1)
+        yield (x-1,y+1)
+        yield (x-1,y)
+    else:
+        yield (x,y-1)
+        yield (x+1,y-1)
+        yield (x+1,y)
+        yield (x+1,y+1)
+        yield (x,y+1)
+        yield (x-1,y+1)
+        yield (x-1,y)
+        yield (x-1,y-1)
 
 def mat_to_pattern(mat):
     return {(i,j) : b for (j, row) in enumerate(mat) for (i, b) in enumerate(row)}
@@ -63,10 +73,10 @@ def gollify(s, string=True, torus=False):
     if string:
         rows = []
         for r in s.split("\n"):
-            r = r.strip()
+            #r = r.strip()
             if r == "" or r.isspace():
                 continue
-            rows.append(r)
+            rows.append(r.replace(" ","0"))
     else:
         rows = [[str(b) for b in r] for r in s]
     # change rule to Caterpillars if you want 2s and 3s

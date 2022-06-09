@@ -1,6 +1,7 @@
 from pattern_basics import *
 
 VARIABLE = 0
+SHARED = {}
 
 def gen_var():
     "Returns a fresh odd positive integer"
@@ -9,8 +10,9 @@ def gen_var():
     return VARIABLE
 
 def reset_var():
-    global VARIABLE
+    global VARIABLE, SHARED
     VARIABLE = 0
+    SHARED = {}
 
 def sort_pair(x, y, p, q):
     "Constraints for p = max(x,y), q = min(x,y), if not None"
@@ -29,7 +31,8 @@ def sort_eight(inputs, outputs):
     """Generator for clauses in partial odd-even mergesort network.
        inputs: list of 8 variables
        outputs: dict from subset of range(8) to variables"""
-
+    global SHARED
+    
     #v = inputs + [gen_var() for _ in range(29)] + outputs + [None]
     #print("Network vars", v)
 
@@ -52,6 +55,17 @@ def sort_eight(inputs, outputs):
     # v7-v15-----v23-----------------------------v45
 
     v = inputs + [None for _ in range(30)] + [outputs.get(i+1, None) for i in range(8)]
+    # Check shared variables
+    for i in range(4):
+        a, b = list(sorted([v[2*i], v[2*i+1]]))
+        try:
+            v[8+2*i] = SHARED[a, b, 0]
+        except KeyError:
+            pass
+        try:
+            v[8+2*i+1] = SHARED[a, b, 1]
+        except KeyError:
+            pass
     # Process gates in reverse order of depth, propagating non-Noneness
     gates = [(29,34,39,40), (36,35,41,42), (37,32,43,44),
              (31,28,34,35), (33,30,36,37),
@@ -65,8 +79,17 @@ def sort_eight(inputs, outputs):
                 v[a] = gen_var()
             if v[b] is None:
                 v[b] = gen_var()
-        for clause in sort_pair(v[a], v[b], v[c], v[d]):
-            yield clause
+            va, vb = min(v[a], v[b]), max(v[a], v[b])
+            compute = False
+            if (va, vb, 0) not in SHARED:
+                SHARED[va, vb, 0] = v[c]
+                compute = True
+            if (va, vb, 1) not in SHARED:
+                SHARED[va, vb, 1] = v[d]
+                compute = True
+            if compute:
+                for clause in sort_pair(v[a], v[b], v[c], v[d]):
+                    yield clause
 
 def intervals(lst):
     "Intervals in [0..8] based on membership in lst"
