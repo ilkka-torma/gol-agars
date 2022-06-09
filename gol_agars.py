@@ -1,6 +1,7 @@
 
 from pysat.solvers import MinisatGH
 from pattern_basics import *
+import argparse as ap
 import bisector
 import sort_network
 
@@ -295,48 +296,57 @@ def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, eac
                 return False
     return True
 
-def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, each, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network",rule=([3],[2,3])):
+def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, each, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network",rule=([3],[2,3]), verbose=True):
     """Search for self-forcing agars of given spatial and temporal periods."""
     n = 0
-    print("Checking {}x{}x{}-periodic points with shift ({},{})".format(width, height, temp, xshift, yshift))
+    if verbose:
+        print("Checking {}x{}x{}-periodic points with shift ({},{})".format(width, height, temp, xshift, yshift))
     candidates = []
     for (domain, temp_pat) in periodic_agars(width, height, temp, xshift, yshift, period_func, lex_funcs, instance=instance, rule=rule):
         to_force = domain
         if temp == 1 or any(temp_pat[i,j,t] != temp_pat[i,j,(t+1)%temp]
                             for i in range(width) for j in range(height) for t in range(temp)):
-            print("Testing pattern")
-            print_temp_pattern(temp_pat)
+            if verbose:
+                print("Testing pattern")
+                print_temp_pattern(temp_pat)
             if has_unique_periodic_orbit(temp_pat, width, height, temp, each, 1, 1, instance=instance, rule=rule):
-                print("Qualified")
+                if verbose:
+                    print("Qualified")
                 candidates.append(temp_pat)
             n += 1
-            if n%250 == 0:
+            if verbose and n%250 == 0:
                 print("Checked", n, "orbits,", len(candidates), "passed")
     i = 1
     g = 0
     while candidates:
-        print("Round {}: {}/{} orbits remain".format(i, len(candidates), n))
+        if verbose:
+            print("Round {}: {}/{} orbits remain".format(i, len(candidates), n))
         news = []
         for (m, temp_pat) in enumerate(candidates):
-            print("Testing pattern {}/{}".format(m+1, len(candidates)))
-            print_temp_pattern(temp_pat)
+            if verbose:
+                print("Testing pattern {}/{}".format(m+1, len(candidates)))
+                print_temp_pattern(temp_pat)
             if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, each, to_force=to_force, instance=instance, rule=rule):
                 g += 1
-                print("It forced itself! ({} so far)".format(g))
+                if verbose:
+                    print("It forced itself! ({} so far)".format(g))
                 yield (temp_pat, i*padcol, i*padrow)
                 continue
-            print("It didn't yet force itself")
+            if verbose:
+                print("It didn't yet force itself")
             for (a,b) in [(i,i+1),(i,i+2),(i+1,i+1)]:
                 if not has_unique_periodic_orbit(temp_pat, width, height, temp, each, a, b, instance=instance, rule=rule):
-                    print("Found periodic preimage, discarded")
+                    if verbose:
+                        print("Found periodic preimage, discarded")
                     break
             else:
-                print("No periodic preimage found")
+                if verbose:
+                    print("No periodic preimage found")
                 news.append(temp_pat)
         candidates = news
         i += 1
 
-def common_forced_part(pats, temp, return_pat=False, chars="nfNF", hints=[], instance="sort_network", rule=([3],[2,3])):
+def common_forced_part(pats, temp, return_pat=False, chars="nfNF", hints=[], instance="sort_network", rule=([3],[2,3]), verbose=True):
     """Compute the set of cells that all patterns force in their nth preimages.
        Return None if any of the patterns have no nth preimage."""
     # Assume pats have common domain
@@ -346,7 +356,7 @@ def common_forced_part(pats, temp, return_pat=False, chars="nfNF", hints=[], ins
         pre_domain = set(nbr for vec in pre_domain for nbr in neighborhood(vec))
     maybe_forced = set(pre_domain)
     for (k, pat) in enumerate(pats):
-        if len(pats) > 1:
+        if verbose and len(pats) > 1:
             print("Pattern {}/{}, {} cells potentially forced".format(k+1, len(pats), len(maybe_forced)))
         clauses, variables = nth_preimage(pat, temp, hints=hints, instance=instance, rule=rule)
         with MinisatGH(bootstrap_with=clauses) as solver:
@@ -369,46 +379,84 @@ def common_forced_part(pats, temp, return_pat=False, chars="nfNF", hints=[], ins
     else:
         return maybe_forced
 
-def find_self_forcing(pat, temp, hints=[], shift=(0,0), instance="sort_network", rule=([3],[2,3])):
+def find_self_forcing(pat, temp, hints=[], shift=(0,0), instance="sort_network", rule=([3],[2,3]), verbose=True):
     """Find the maximal nonempty subpattern that forces itself in its nth preimages.
        If pat is a nth-generation orphan, return None."""
     sx, sy = shift
     while True:
-        fp = common_forced_part([pat], temp, hints=hints, instance=instance, rule=rule)
+        fp = common_forced_part([pat], temp, hints=hints, instance=instance, rule=rule, verbose=verbose)
         if fp is None:
             return None
-        print("Now forcing", len(fp), "cells")
+        if verbose:
+            print("Now forcing", len(fp), "cells")
         if any(vec not in fp for vec in pat):
             pat = {(x,y):val for ((x,y),val) in pat.items() if (x-sx,y-sy) in fp}
             if not pat:
                 return pat
         else:
             return pat
-        
+
+def parse_coord(s):
+    try:
+        a, b = s.split(",")
+        return (int(a), int(b))
+    except ValueError:
+        raise ValueError
+
+def parse_rule(s):
+    try:
+        birth, survive = s.split("/")
+        assert birth[0] == 'B' and survive[0] == 'S'
+        return ([int(n) for n in birth[1:]], [int(n) for n in survive[1:]])
+    except (ValueError, AssertionError):
+        raise ValueError
+
 if __name__ == "__main__":
+    parser = ap.ArgumentParser()
+    parser.add_argument("width", type=int, help="width of agar")
+    parser.add_argument("height", type=int, help="height of agar")
+    parser.add_argument("temp", type=int, help="temporal period of agar")
+    parser.add_argument("-C", "--pad_columns", default=None, help="number of extra columns per step (default: width)")
+    parser.add_argument("-R", "--pad_rows", default=None, help="number of extra rows per step (default_ height)")
+    parser.add_argument("-s", "--shift", default=(0,0), type=parse_coord, help="spatial shift of agar (default: (0,0))")
+    parser.add_argument("-r", "--rule", default=([3], [2,3]), type=parse_rule, help="CA rule (default: B3/S23)")
+    parser.add_argument("-i", "--instance", choices=["sort_network", "bisector"], default="sort_network", help="SAT instance encoding (default: sort_network)")
+    parser.add_argument("-j", "--jump", default=False, action="store_true", help="check forcing only for full temporal period (slow)")
+    parser.add_argument("-F", "--finite_pattern_size", default=None, type=parse_coord, help="also search for a finite self-forcing pattern of at most given size")
+    parser.add_argument("-o", "--output", default="output.txt", help="file to append search results (default: output.txt)")
+    parser.add_argument("-g", "--golly_format", default=False, action="store_true", help="output in Golly's rle format")
+    parser.add_argument("-q", "--quiet", default=False, action="store_true", help="suppress console output")
+    args = parser.parse_args()
+    
     ragas = []
-    # instance and rule; rules other than B3/S23 are supported only by sort_network
-    instance = "sort_network"
-    rule = ([3],[2,3]) # Life
-    print("Using rule B{}/S{}".format("".join(map(str,rule[0])),
-                                      "".join(map(str,rule[1]))))
+    if not args.quiet:
+        print("Using rule B{}/S{}".format("".join(map(str,args.rule[0])),
+                                          "".join(map(str,args.rule[1]))))
     # dimensions of periodic orbit
-    width, height, temp = 4, 4, 1
+    width, height, temp = args.width, args.height, args.temp
     # speed of increasing extra rows and columns
-    padrow, padcol = 3, 3
+    if args.pad_columns is None:
+        padcol = width
+    else:
+        padcol = args.pad_columns
+    if args.pad_rows is None:
+        padrow = height
+    else:
+        padrow = args.pad_rows
     # the orbit can also be shift-periodic
-    xshift, yshift = 0, 0
+    xshift, yshift = args.shift
     # check every step of the agar vs all at once
-    force_every_step = True
+    force_every_step = not args.jump
     # let's also find out if a 50x50 patch contains a self-forcing pattern
-    check_forcing = True
-    tot_width, tot_height = 50, 50
+    check_forcing = args.finite_pattern_size is not None
+    if check_forcing:
+        tot_width, tot_height = args.finite_pattern_size
     # output as rle (as opposed to Python dict)
-    rle_output = True
-    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, force_every_step, rule=rule, instance=instance):
+    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, force_every_step, rule=args.rule, instance=args.instance, verbose=not args.quiet):
         ragas.append(raga)
         if check_forcing:
-            print("Computing maximal self-forcing patch")
+            if not args.quiet:
+                print("Computing maximal self-forcing patch")
             large_patch = {(x,y):raga[x%width,y%height,0]
                            for x in range(tot_width)
                            for y in range(tot_height)}
@@ -423,12 +471,12 @@ if __name__ == "__main__":
             else:
                 hints = []
             hints=[]
-            sf = find_self_forcing(large_patch, temp, hints=hints, rule=rule, instance=instance)
-            if sf:
+            sf = find_self_forcing(large_patch, temp, hints=hints, rule=args.rule, instance=args.instance, verbose=not args.quiet)
+            if sf and not args.quiet:
                 print("Self-forcing patch found!")
                 print_pattern(sf)
-        with open("output.txt",'a') as f:
-            if rle_output:
+        with open(args.output,'a') as f:
+            if args.golly_format:
                 if check_forcing:
                     if sf:
                         lox, hix, loy, hiy = extent(sf)
@@ -446,4 +494,5 @@ if __name__ == "__main__":
                     f.write("{} {} {} {} {} ".format(width,height,temp,pc,pr,'?'))
                     f.write(str(raga))
                     f.write("\n")
-    print("Done, found", len(ragas))
+    if not args.quiet:
+        print("Done, found", len(ragas))
