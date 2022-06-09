@@ -4,7 +4,7 @@ from pattern_basics import *
 import bisector
 import sort_network
 
-def nth_preimage(pattern, temp, instance="sort_network",rule=([3],[2,3])):
+def nth_preimage(pattern, temp, hints=[], instance="sort_network",rule=([3],[2,3])):
     """Clauses and names for the nth preimage of a single pattern, n >= 1."""
     if instance == "sort_network":
         mod = sort_network
@@ -29,6 +29,19 @@ def nth_preimage(pattern, temp, instance="sort_network",rule=([3],[2,3])):
                                                       for (i,j) in neighborhood((x,y))],
                                                      var,
                                                      rule)]
+    # deduce cell values from hints
+    known_cells = {(x,y,0) : b for ((x,y), b) in pattern.items()}
+    for (x,y,t) in sorted(set(known_cells)|var_cells, key=lambda p:p[2]):
+        if t < temp:
+            for (subpat, forced) in hints:
+                if all(b == known_cells.get((x+i,y+j,t))
+                       for ((i,j), b) in subpat.items()):
+                    for ((i,j), b) in forced.items():
+                        known_cells[x+i,y+j,t+1] = b
+    for ((x,y,t), b) in known_cells.items():
+        if t > 0:
+            clauses.append([(1 if b else -1)*variables[x,y,t]])
+            
     mod.reset_var()
 
     ret_vars = {(x,y) : var
@@ -159,35 +172,81 @@ def model_to_pattern(model, names):
     "Convert a model to a pattern or orbit."
     return {vec : (0 if model[name-1] < 0 else 1) for (vec, name) in names.items()}
 
-def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instance="sort_network", rule=([3],[2,3])):
+def has_unique_periodic_orbit(temp_pat, width, height, temp, each, xper, yper, instance="sort_network", rule=([3],[2,3])):
     "Does each configuration in this orbit have a unique w*xp × h*yp -periodic preimage?"
     if instance == "sort_network":
         mod = sort_network
     elif instance == "bisector":
         mod = bisector
-    for t in range(temp):
-        variables = {(i,j) : mod.gen_var()
+    if each:
+        for t in range(temp):
+            variables = {(i,j) : mod.gen_var()
+                         for i in range(xper*width)
+                         for j in range(yper*height)}
+            clauses = [clause
+                       for (i,j) in variables
+                       for clause in mod.local_preimage([variables[x%(xper*width),y%(yper*height)]
+                                                         for (x,y) in neighborhood((i,j))],
+                                                        temp_pat[i%width,j%height,t],
+                                                        rule)]
+
+            # force lexicographic minimality among shifts along periods
+            base_vars = [variables[i,j] for i in range(width) for j in range(height)]
+            other_vars = [[variables[i+x*width,j+y*height] for i in range(width) for j in range(height)]
+                          for x in range(xper)
+                          for y in range(1 if x==0 else 0, yper)]
+            lex_clauses = list(lex_leq(base_vars, other_vars, instance=instance))
+
+            # force difference to previous configuration in orbit
+            diff_clause = [(-1 if temp_pat[x%width,y%height,(t-1)%temp] else 1)*variables[x,y]
+                           for x in range(width*xper)
+                           for y in range(height*yper)]
+
+            mod.reset_var()
+            with MinisatGH(bootstrap_with=clauses+lex_clauses+[diff_clause]) as solver:
+                if solver.solve():
+                    #print("Periodic preimage:")
+                    #model = model_to_pattern(solver.get_model(), variables)
+                    #print_pattern(model)
+                    return False
+    else:
+        variables = {(i,j,t) : mod.gen_var()
                      for i in range(xper*width)
-                     for j in range(yper*height)}
+                     for j in range(yper*height)
+                     for t in range(1,temp+1)}
         clauses = [clause
-                   for (i,j) in variables
-                   for clause in mod.local_preimage([variables[x%(xper*width),y%(yper*height)]
-                                                     for (x,y) in neighborhood((i,j))],
-                                                    temp_pat[i%width,j%height,t],
-                                                    rule)]
-        
+                   for (i,j,t) in variables
+                   if t > 1
+                   for clause in mod.local_preimage_var([variables[x%(xper*width),y%(yper*height),t]
+                                                         for (x,y) in neighborhood((i,j))],
+                                                        variables[i,j,t-1],
+                                                        rule)]
+        clauses += [clause
+                    for i in range(xper*width)
+                    for j in range(yper*height)
+                    for clause in mod.local_preimage([variables[x%(xper*width),y%(yper*height),1]
+                                                      for (x,y) in neighborhood((i,j))],
+                                                     temp_pat[i%width,j%height,0],
+                                                     rule)]
+
         # force lexicographic minimality among shifts along periods
-        base_vars = [variables[i,j] for i in range(width) for j in range(height)]
-        other_vars = [[variables[i+x*width,j+y*height] for i in range(width) for j in range(height)]
+        base_vars = [variables[i,j,t]
+                     for i in range(width)
+                     for j in range(height)
+                     for t in range(1,temp+1)]
+        other_vars = [[variables[i+x*width,j+y*height,t]
+                       for i in range(width)
+                       for j in range(height)
+                       for t in range(1,temp+1)]
                       for x in range(xper)
                       for y in range(1 if x==0 else 0, yper)]
         lex_clauses = list(lex_leq(base_vars, other_vars, instance=instance))
 
-        # force difference to previous configuration in orbit
-        diff_clause = [(-1 if temp_pat[x%width,y%height,(t-1)%temp] else 1)*variables[x,y]
+        # force difference to base configuration
+        diff_clause = [(-1 if temp_pat[x%width,y%height,0] else 1)*variables[x,y,temp]
                        for x in range(width*xper)
                        for y in range(height*yper)]
-        
+
         mod.reset_var()
         with MinisatGH(bootstrap_with=clauses+lex_clauses+[diff_clause]) as solver:
             if solver.solve():
@@ -197,9 +256,10 @@ def has_unique_periodic_orbit(temp_pat, width, height, temp, xper, yper, instanc
                 return False
     return True
 
-def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_force=None, instance="sort_network",rule=([3],[2,3])):
+def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, each, to_force=None, instance="sort_network",rule=([3],[2,3])):
     """Does each configuration in this orbit have a unique w×h-patch in the preimage
-       if it's continued periodically for the given number of rows and columns?"""
+       if it's continued periodically for the given number of rows and columns?
+       Alternatively, check only for t'th power."""
     if to_force is None:
         to_force = set((i,j) for i in range(width) for j in range(height))
         min_x = min_y = 0
@@ -210,12 +270,24 @@ def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_
         max_x = max(x for (x,_) in to_force)
         min_y = min(y for (_,y) in to_force)
         max_y = max(y for (_,y) in to_force)
-    for t in range(temp):
-        tiled = {(i,j) : temp_pat[i%width,j%height,t]
+    if each:
+        for t in range(temp):
+            tiled = {(i,j) : temp_pat[i%width,j%height,t]
+                     for i in range(min_x-padcol,max_x+padcol+1)
+                     for j in range(min_y-padrow,max_y+padrow+1)}
+            clauses, variables = nth_preimage(tiled, 1, instance=instance, rule=rule)
+            diff_clause = [(-1 if temp_pat[i,j,(t-1)%temp] else 1)*variables[i,j]
+                           for i in range(width)
+                           for j in range(height)]
+            with MinisatGH(bootstrap_with=clauses+[diff_clause]) as solver:
+                if solver.solve():
+                    return False
+    else:
+        tiled = {(i,j) : temp_pat[i%width,j%height,0]
                  for i in range(min_x-padcol,max_x+padcol+1)
                  for j in range(min_y-padrow,max_y+padrow+1)}
-        clauses, variables = nth_preimage(tiled, 1, instance=instance, rule=rule)
-        diff_clause = [(-1 if temp_pat[i,j,(t-1)%temp] else 1)*variables[i,j]
+        clauses, variables = nth_preimage(tiled, temp, instance=instance, rule=rule)
+        diff_clause = [(-1 if temp_pat[i,j,0] else 1)*variables[i,j]
                        for i in range(width)
                        for j in range(height)]
         with MinisatGH(bootstrap_with=clauses+[diff_clause]) as solver:
@@ -223,7 +295,7 @@ def has_unique_extended_orbit(temp_pat, width, height, temp, padcol, padrow, to_
                 return False
     return True
 
-def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network",rule=([3],[2,3])):
+def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, each, period_func=lambda x,y: None, lex_funcs=None, instance="sort_network",rule=([3],[2,3])):
     """Search for self-forcing agars of given spatial and temporal periods."""
     n = 0
     print("Checking {}x{}x{}-periodic points with shift ({},{})".format(width, height, temp, xshift, yshift))
@@ -234,7 +306,7 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
                             for i in range(width) for j in range(height) for t in range(temp)):
             print("Testing pattern")
             print_temp_pattern(temp_pat)
-            if has_unique_periodic_orbit(temp_pat, width, height, temp, 1, 1, instance=instance, rule=rule):
+            if has_unique_periodic_orbit(temp_pat, width, height, temp, each, 1, 1, instance=instance, rule=rule):
                 print("Qualified")
                 candidates.append(temp_pat)
             n += 1
@@ -248,14 +320,14 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         for (m, temp_pat) in enumerate(candidates):
             print("Testing pattern {}/{}".format(m+1, len(candidates)))
             print_temp_pattern(temp_pat)
-            if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, to_force=to_force, instance=instance, rule=rule):
+            if has_unique_extended_orbit(temp_pat, width, height, temp, i*padcol, i*padrow, each, to_force=to_force, instance=instance, rule=rule):
                 g += 1
                 print("It forced itself! ({} so far)".format(g))
                 yield (temp_pat, i*padcol, i*padrow)
                 continue
             print("It didn't yet force itself")
             for (a,b) in [(i,i+1),(i,i+2),(i+1,i+1)]:
-                if not has_unique_periodic_orbit(temp_pat, width, height, temp, a, b, instance=instance, rule=rule):
+                if not has_unique_periodic_orbit(temp_pat, width, height, temp, each, a, b, instance=instance, rule=rule):
                     print("Found periodic preimage, discarded")
                     break
             else:
@@ -264,19 +336,19 @@ def find_ragas(width, height, temp, padcol, padrow, xshift, yshift, period_func=
         candidates = news
         i += 1
 
-def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sort_network", rule=([3],[2,3])):
+def common_forced_part(pats, temp, return_pat=False, chars="nfNF", hints=[], instance="sort_network", rule=([3],[2,3])):
     """Compute the set of cells that all patterns force in their nth preimages.
        Return None if any of the patterns have no nth preimage."""
     # Assume pats have common domain
     domain = set(pats[0])
     pre_domain = domain
-    for t in range(temp):
+    for _ in range(temp):
         pre_domain = set(nbr for vec in pre_domain for nbr in neighborhood(vec))
     maybe_forced = set(pre_domain)
     for (k, pat) in enumerate(pats):
         if len(pats) > 1:
             print("Pattern {}/{}, {} cells potentially forced".format(k+1, len(pats), len(maybe_forced)))
-        clauses, variables = nth_preimage(pat, temp, instance=instance, rule=rule)
+        clauses, variables = nth_preimage(pat, temp, hints=hints, instance=instance, rule=rule)
         with MinisatGH(bootstrap_with=clauses) as solver:
             i = 0
             while solver.solve():
@@ -297,12 +369,12 @@ def common_forced_part(pats, temp, return_pat=False, chars="nfNF", instance="sor
     else:
         return maybe_forced
 
-def find_self_forcing(pat, temp, shift=(0,0), instance="sort_network", rule=([3],[2,3])):
+def find_self_forcing(pat, temp, hints=[], shift=(0,0), instance="sort_network", rule=([3],[2,3])):
     """Find the maximal nonempty subpattern that forces itself in its nth preimages.
        If pat is a nth-generation orphan, return None."""
     sx, sy = shift
     while True:
-        fp = common_forced_part([pat], temp, instance=instance, rule=rule)
+        fp = common_forced_part([pat], temp, hints=hints, instance=instance, rule=rule)
         if fp is None:
             return None
         print("Now forcing", len(fp), "cells")
@@ -321,24 +393,37 @@ if __name__ == "__main__":
     print("Using rule B{}/S{}".format("".join(map(str,rule[0])),
                                       "".join(map(str,rule[1]))))
     # dimensions of periodic orbit
-    width, height, temp = 6, 4, 2
+    width, height, temp = 4, 4, 1
     # speed of increasing extra rows and columns
     padrow, padcol = 3, 3
     # the orbit can also be shift-periodic
     xshift, yshift = 0, 0
+    # check every step of the agar vs all at once
+    force_every_step = True
     # let's also find out if a 50x50 patch contains a self-forcing pattern
     check_forcing = True
     tot_width, tot_height = 50, 50
     # output as rle (as opposed to Python dict)
     rle_output = True
-    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, rule=rule, instance=instance):
+    for (raga,pc,pr) in find_ragas(width, height, temp, padrow, padcol, xshift, yshift, force_every_step, rule=rule, instance=instance):
         ragas.append(raga)
         if check_forcing:
             print("Computing maximal self-forcing patch")
             large_patch = {(x,y):raga[x%width,y%height,0]
                            for x in range(tot_width)
                            for y in range(tot_height)}
-            sf = find_self_forcing(large_patch, temp, rule=rule, instance=instance)
+            if force_every_step:
+                hints = [({(x,y) : raga[x%width,y%height,t]
+                           for x in range(-pc, width+pc)
+                           for y in range(-pr, height+pr)},
+                          {(x,y) : raga[x,y,(t-1)%temp]
+                           for x in range(width)
+                           for y in range(height)})
+                         for t in range(temp)]
+            else:
+                hints = []
+            hints=[]
+            sf = find_self_forcing(large_patch, temp, hints=hints, rule=rule, instance=instance)
             if sf:
                 print("Self-forcing patch found!")
                 print_pattern(sf)
@@ -346,7 +431,7 @@ if __name__ == "__main__":
             if rle_output:
                 if check_forcing:
                     if sf:
-                        lox, hix, loy, hiy, _ = pextend(sf)
+                        lox, hix, loy, hiy = extent(sf)
                         f.write("# self-forcing patch of size {}x{}\n".format(hix-lox, hiy-loy))
                     else:
                         f.write("# no self-forcing patch found\n")
