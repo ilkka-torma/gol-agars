@@ -4,6 +4,7 @@ from pattern_basics import *
 import argparse as ap
 import bisector
 import sort_network
+import totalizer
 
 def nth_preimage(pattern, temp, hints=[], instance="sort_network",rule=([3],[2,3])):
     """Clauses and names for the nth preimage of a single pattern, n >= 1."""
@@ -11,6 +12,8 @@ def nth_preimage(pattern, temp, hints=[], instance="sort_network",rule=([3],[2,3
         mod = sort_network
     elif instance == "bisector":
         mod = bisector
+    elif instance == "totalizer":
+        mod = totalizer
     cells = pattern
     var_cells = set()
     for t in range(1,temp+1):
@@ -57,6 +60,8 @@ def lex_leq(least, greaters, instance="sort_network"):
         mod = sort_network
     elif instance == "bisector":
         mod = bisector
+    elif instance == "totalizer":
+        mod = totalizer
     lex_vars = {}
     # define new vars lv[a,b] <=> (a == b) as needed
     for vs in greaters:
@@ -84,6 +89,8 @@ def periodic_agars(width, height, temp, xshift, yshift, period_func=None, lex_fu
         mod = sort_network
     elif instance == "bisector":
         mod = bisector
+    elif instance == "totalizer":
+        mod = totalizer
     if period_func is None:
         variables = {(i,j,t) : mod.gen_var()
                      for i in range(width)
@@ -179,6 +186,8 @@ def has_unique_periodic_orbit(temp_pat, width, height, temp, each, xper, yper, i
         mod = sort_network
     elif instance == "bisector":
         mod = bisector
+    elif instance == "totalizer":
+        mod = totalizer
     if each:
         for t in range(temp):
             variables = {(i,j) : mod.gen_var()
@@ -420,7 +429,7 @@ if __name__ == "__main__":
     parser.add_argument("-R", "--pad_rows", default=None, help="number of extra rows per step (default_ height)")
     parser.add_argument("-s", "--shift", default=(0,0), type=parse_coord, help="spatial shift of agar (default: (0,0))")
     parser.add_argument("-r", "--rule", default=([3], [2,3]), type=parse_rule, help="CA rule (default: B3/S23)")
-    parser.add_argument("-i", "--instance", choices=["sort_network", "bisector"], default="sort_network", help="SAT instance encoding (default: sort_network)")
+    parser.add_argument("-i", "--instance", choices=["sort_network", "bisector", "totalizer"], default="totalizer", help="SAT instance encoding (default: totalizer)")
     parser.add_argument("-j", "--jump", default=False, action="store_true", help="check forcing only for full temporal period (slow)")
     parser.add_argument("-F", "--finite_pattern_size", default=None, type=parse_coord, help="also search for a finite self-forcing pattern of at most given size")
     parser.add_argument("-o", "--output", default="output.txt", help="file to append search results (default: output.txt)")

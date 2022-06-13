@@ -2,24 +2,36 @@ def neighborhood(vec):
     "The middle cell is the first one yielded."
     yield vec
     x, y = vec
-    if int((x%4)/2) == y%2:
-        yield (x-1,y-1)
-        yield (x,y-1)
-        yield (x+1,y-1)
-        yield (x+1,y)
-        yield (x+1,y+1)
-        yield (x,y+1)
-        yield (x-1,y+1)
+    if y%2:
         yield (x-1,y)
+        yield (x-1,y-1)
+        yield (x+1,y)
+        yield (x+1,y-1)
+        if x%2:
+            yield (x-1,y+1)
+            yield (x,y+1)
+            yield (x+1,y+1)
+            yield (x,y-1)
+        else:
+            yield (x+1,y+1)
+            yield (x,y+1)
+            yield (x-1,y+1)
+            yield (x,y-1)
     else:
-        yield (x,y-1)
-        yield (x+1,y-1)
-        yield (x+1,y)
-        yield (x+1,y+1)
-        yield (x,y+1)
         yield (x-1,y+1)
         yield (x-1,y)
-        yield (x-1,y-1)
+        yield (x+1,y+1)
+        yield (x+1,y)
+        if x%2:
+            yield (x-1,y-1)
+            yield (x,y-1)
+            yield (x+1,y-1)
+            yield (x,y+1)
+        else:
+            yield (x+1,y-1)
+            yield (x,y-1)
+            yield (x-1,y-1)
+            yield (x,y+1)
 
 def mat_to_pattern(mat):
     return {(i,j) : b for (j, row) in enumerate(mat) for (i, b) in enumerate(row)}

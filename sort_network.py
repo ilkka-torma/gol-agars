@@ -55,36 +55,38 @@ def sort_eight(inputs, outputs):
     # v7-v15-----v23-----------------------------v45
 
     v = inputs + [None for _ in range(30)] + [outputs.get(i+1, None) for i in range(8)]
-    # Check shared variables
-    for i in range(4):
-        a, b = list(sorted([v[2*i], v[2*i+1]]))
-        try:
-            v[8+2*i] = SHARED[a, b, 0]
-        except KeyError:
-            pass
-        try:
-            v[8+2*i+1] = SHARED[a, b, 1]
-        except KeyError:
-            pass
-    # Process gates in reverse order of depth, propagating non-Noneness
-    gates = [(29,34,39,40), (36,35,41,42), (37,32,43,44),
-             (31,28,34,35), (33,30,36,37),
-             (16,18,38,28), (24,26,29,30), (25,27,31,32), (21,23,33,45),
-             (20,17,24,25), (22,19,26,27),
+    gates = [(0,1,8,9), (2,3,10,11), (4,5,12,13), (6,7,14,15),
              (8,10,16,17), (9,11,20,21), (12,14,18,19), (13,15,22,23),
-             (0,1,8,9), (2,3,10,11), (4,5,12,13), (6,7,14,15)]
+             (20,17,24,25), (22,19,26,27),
+             (16,18,38,28), (24,26,29,30), (25,27,31,32), (21,23,33,45),
+             (31,28,34,35), (33,30,36,37),
+             (29,34,39,40), (36,35,41,42), (37,32,43,44)]
+    # Check shared variables
     for (a,b,c,d) in gates:
+        va, vb = v[a], v[b]
+        if va is not None and vb is not None:
+            va, vb = list(sorted([v[a], v[b]]))
+            try:
+                v[c] = SHARED[va, vb, 0]
+            except KeyError:
+                pass
+            try:
+                v[d] = SHARED[va, vb, 1]
+            except KeyError:
+                pass
+    # Process gates in reverse order of depth, propagating non-Noneness
+    for (a,b,c,d) in reversed(gates):
         if v[c] is not None or v[d] is not None:
             if v[a] is None:
                 v[a] = gen_var()
             if v[b] is None:
                 v[b] = gen_var()
-            va, vb = min(v[a], v[b]), max(v[a], v[b])
+            va, vb = list(sorted([v[a], v[b]]))
             compute = False
-            if (va, vb, 0) not in SHARED:
+            if (va, vb, 0) not in SHARED and v[c] is not None:
                 SHARED[va, vb, 0] = v[c]
                 compute = True
-            if (va, vb, 1) not in SHARED:
+            if (va, vb, 1) not in SHARED and v[d] is not None:
                 SHARED[va, vb, 1] = v[d]
                 compute = True
             if compute:
