@@ -5,8 +5,8 @@ The file `gol_agars.py` contains a search script for self-forcing agars of given
 
 Command line arguments:
 * The required arguments `width`, `height` and `temp` are the spatial and temporal periods of the agars we search for.
-* `--instance` is the method used for encoding the local rule of the CA as a SAT instance. It must be either `sort_network` or `bisector`.
-* `--rule` is a Life-like CA, given as live neighbor counts for birth and survival. The default is Life, or B3/S23. Only `sort_network` supports all Life-like rules; `bisector` is limited to Life.
+* `--instance` is the method used for encoding the local rule of the CA as a SAT instance. It must be either `totalizer`, `sort_network` or `bisector`.
+* `--rule` is a Life-like CA, given as live neighbor counts for birth and survival. The default is Life, or B3/S23. Only `totalizer` and `sort_network` support all Life-like rules; `bisector` is limited to Life.
 * `--pad_rows` is the number of additional rows per round used in the self-forcingness check, and `--pad_columns` is the same for columns. The fundamental domain of the agar has size `width × height`, and on round `i`, we check a patch of size `(width + 2*i*padcol) × (height + 2*i*padrow)`.
 * `--shift` is the displacement vector of the agar: after applying the CA `temp` times, it should return to its original state but shifted. Defaults to `0,0`.
 * If `--finite_pattern_size=w,h` is given, for every self-forcing agar we find, we also check whether a `w × h` patch contains a nonempty self-forcing patch (that solves the Unique father problem).
